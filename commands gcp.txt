@@ -1,0 +1,59 @@
+fagcpdebc04_06@cloudshell:~ (lateral-raceway-360606)$ bq mk -t --schema 'first_name:STRING,last_name:STRING,country:STRING,email:STRING,
+married:BOOL,salary:INTEGER,job:STRING,color:STRING,age:INTEGER,datetime:DATE' --time_partitioning_field datetime 
+--time_partitioning_type YEAR np_partition_comp.version1
+
+bq load --source_format=CSV --skip_leading_rows=1 --time_partitioning_field datetime --time_partitioning_type YEAR np_partition_comp.version3 gs://nilay-pandey-fagcpbcmp/workingfile/csvgen_sourcefile1.csv first_name:STRING,
+last_name:STRING,country:STRING,email:STRING,married:BOOL,salary:INTEGER,job:STRING,color:STRING,age:INTEGER,datetime:DAT
+bq load \
+> --source_format=CSV \
+> --skip_leading_rows=1 \
+> np_partition_comp.version2 \
+> gs://nilay-pandey-fagcpbcmp/workingfile/csvgen_sourcefile1.csv \
+> First-name:STRING,Last-name:STRING,Country:STRING,email:STRING,married?:BOOLEAN,Salary:INTEGER,job:STRING,fav_col:STRING,age:INTEGER,datetime:DATE
+
+/*CREATE TABLE np_partition_comp.version2(
+  First_name string,
+  Last_name string,
+  Country string,
+  email string,
+  married string,
+  salary int,
+  job string,
+  fav_col string,
+  age int,
+  date_time date,
+  )
+  PARTITION BY
+  DATE_TRUNC(date_time, YEAR)
+  OPTIONS (
+    partition_expiration_days = 30);*/
+
+/*LOAD DATA INTO np_partition_comp.version1
+FROM FILES (
+  format = 'CSV',
+  skip_leading_rows=1,
+  uris = ['gs://nilay-pandey-fagcpbcmp/truefile/csvgen_sourefile1.csv']);*/
+
+
+select
+case when p1.year is null then
+p2.year
+else
+p1.year
+end as year,
+rowsinversion1,
+rowsinversion2,
+rowsinversion2-rowsinversion1 as Difference
+from
+(select extract(year from datetime) as year,
+count(*) as rowsinversion1,
+from `np_partition_comp.version1`
+group by year ) as p1
+full outer join
+(select extract(year from datetime) as year,
+count(*)as rowsinversion2,
+from `np_partition_comp.version2`
+group by year ) as p2
+on p1.year=p2.year
+order by year
+
